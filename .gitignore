@@ -1,0 +1,12 @@
+# VM disk images (too large for git)
+*.img
+*.qcow2
+*.fd
+*.dmg
+
+# macOS system files
+.DS_Store
+
+# Temp files
+*.ppm
+*.log
