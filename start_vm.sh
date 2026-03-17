@@ -15,13 +15,25 @@ sudo sh -c 'echo "nameserver 8.8.8.8" > /etc/resolv.conf; echo "nameserver 1.1.1
 
 # 3. Start DNS proxy (dnsmasq) with dynamic WSL IP
 echo "[3/5] Starting DNS proxy..."
+# Kill ALL processes on port 53 (dnsmasq, python, etc)
 sudo killall dnsmasq 2>/dev/null || true
-sleep 1
+sudo fuser -k 53/udp 2>/dev/null || true
+sudo fuser -k 53/tcp 2>/dev/null || true
+sleep 2
 WSL_IP=$(hostname -I | awk '{print $1}')
 echo "    WSL IP: $WSL_IP"
-sudo dnsmasq --listen-address=0.0.0.0 --port=53 --no-dhcp-interface=* \
-  --server=8.8.8.8 --server=1.1.1.1 --bind-interfaces 2>/dev/null &
+sudo dnsmasq --listen-address="$WSL_IP" --port=53 --no-dhcp-interface=* \
+  --server=8.8.8.8 --server=1.1.1.1 --bind-interfaces
 sleep 1
+# Verify dnsmasq is running
+if pgrep dnsmasq > /dev/null; then
+  echo "    dnsmasq OK"
+else
+  echo "    WARNING: dnsmasq failed, trying fallback..."
+  sudo dnsmasq --listen-address=0.0.0.0 --port=53 --no-dhcp-interface=* \
+    --server=8.8.8.8 --server=1.1.1.1 2>/dev/null &
+  sleep 1
+fi
 
 # 4. Kill any existing VM
 echo "[4/5] Starting QEMU..."
